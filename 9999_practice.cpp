@@ -14,164 +14,78 @@
 #include <memory>
 using namespace std;
 
-class find_and_sort
+#ifndef __THREAD_POOL_H__
+#define __THREAD_POOL_H__
+#include <atomic>
+#include <mutex>
+#include <thread>
+#include <memory>
+#include <queue>
+#include <future>
+#include <vector>
+class ThreadPool
 {
-private:
-    vector<int> father;
-    int n = 1005;
-
 public:
-    void init()
+    using Task = std::packaged_task<void()>;
+    template <typename F, typename... Args>
+    auto commit(F &&f, Args &&...args) -> decltype(f(args...))
     {
-        father = vector<int>(n);
-        for (int i = 0; i < n; ++i)
+        using ReturnType = decltype(f(args...));
+        if (stop_.load())
         {
-            father[i] = i;
+            return std::future<ReturnType>{};
         }
-    }
-
-    int find(int u)
-    {
-        return father[u] == u ? u : father[u] = find(father[u]);
-    }
-
-    bool isSame(int u, int v)
-    {
-        u = find(u);
-        v = find(v);
-        return v == u;
-    }
-
-    void join(int u, int v)
-    {
-        u = find(u);
-        v = find(v);
-        if (u != v)
+        auto task = std::make_shared<std::packaged<ReturnType()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+        std::future<ReturnType> ret = task->get_future();
         {
-            father[v] = u;
+            std::lock_guard<std::mutex> lock(mutex_);
+            tasks_.emplace([task]
+                           { (*task)(); });
         }
-    }
-};
-
-void merge(vector<int> &arr)
-{
-    processMerge(arr, 0, arr.size() - 1);
-}
-
-void processMerge(vector<int> &arr, int left, int right)
-{
-    if (left < right)
-    {
-        int mid = left + (right - left) / 2;
-        processMerge(arr, left, right);
-        processMerge(arr, mid + 1, right);
-        merge(arr, left, mid, right);
-    }
-}
-
-void merge(vector<int> &arr, int left, int mid, int right)
-{
-    vector<int> help(right - left + 1);
-    int helpIndex = 0, p1 = left, p2 = mid + 1;
-
-    while (p1 <= mid && p2 <= right)
-    {
-        help[helpIndex++] = arr[p1] <= arr[p2] ? arr[p1++] : arr[p2++];
-    }
-    while (p1 <= mid)
-    {
-        help[helpIndex++] = arr[p1++];
+        cv_.notify_one();
+        return ret;
     }
 
-    while (p2 <= mid)
+private:
+    ThreadPool(unsigned int num = 5) : stop_(false)
     {
-        help[helpIndex++] = arr[p2++];
-    }
-
-    for (int i = 0; i < help.size(); ++i)
-    {
-        arr[left + i] = help[i];
-    }
-}
-
-void quickSort(vector<int> &arr)
-{
-    processQuick(arr, 0, arr.size() - 1);
-}
-void swap(vector<int> &arr, int left, int right)
-{
-    int temp = arr[left];
-    arr[left] = arr[right];
-    arr[right] = temp;
-}
-vector<int> partition(vector<int> &arr, int left, int right)
-{
-    int less = left - 1, more = right;
-    while (left < more)
-    {
-        if (arr[left] < arr[right])
+        if (num <= 0)
         {
-            swap(arr, ++less, left++);
-        }
-        else if (arr[left] > arr[right])
-        {
-            swap(arr, --more, left);
+            thread_num_ = 1;
         }
         else
         {
-            ++left;
+            thread_num_ = num;
         }
+        start();
     }
-    swap(arr, left, right);
-    return {less + 1, more};
-}
-void processQuick(vector<int> &arr, int left, int right)
-{
-    if (left < right)
+    void start()
     {
-        auto temp = partition(arr, left, right);
-        processQuick(arr, left, temp[0] - 1);
-        processQuick(arr, temp[1] + 1, right);
-    }
-}
-
-void heapSort(vector<int> &arr)
-{
-    for (int i = 0; i < arr.size(); ++i)
-    {
-        heapInsert(arr, i);
-    }
-    int heapSize = arr.size();
-    swap(arr, 0, --heapSize);
-    while (heapSize > 0)
-    {
-        heapify(arr, 0, heapSize);
-        swap(arr, 0, --heapSize);
-    }
-}
-
-void heapInsert(vector<int> &arr, int index)
-{
-    while (arr[(index - 1) / 2] < arr[index])
-    {
-        swap(arr[(index - 1) / 2], arr[index]);
-        index = (index - 1) / 2;
-    }
-}
-
-void heapify(vector<int> &arr, int index, int heapSize)
-{
-    int left = index * 2 + 1;
-    while (left < heapSize)
-    {
-        int largest = left + 1 < heapSize && arr[left + 1] > arr[left] ? left + 1 : left;
-        largest = arr[largest] > arr[index] ? largest : index;
-        if (largest == index)
+        for (unsigned int i = 0; i < thread_num_; ++i)
         {
-            return;
+            pool_.emplace_back([this]
+                               {
+                while (!stop_.load()) {
+                    Task task;
+                    {
+                        std::unique_lock<std::mutex> lock(mutex_);
+                        cv_.wait(lock, [this] {return stop_.load() || !tasks_.empty();});
+                        task = std::move(tasks_.front());
+                        tasks_.pop();
+                    }
+                    --thread_num_;
+                    task();
+                    ++thread_num_;
+                } });
         }
-        swap(arr[largest], arr[index]);
-        index = largest;
-        left = index * 2 + 1;
     }
-}
+
+private:
+    std::atomic<int> thread_num_;
+    std::atomic<bool> stop_;
+    std::vector<std::thread> pool_;
+    std::queue<Task> tasks_;
+    std::mutex mutex_;
+    std::condition_variable cv_;
+};
+#endif
