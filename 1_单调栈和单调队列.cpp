@@ -83,7 +83,7 @@ public:
             }
             else
             {
-                // 找到左右两遍第一个小于当前柱子的下标
+                // 找到左右两边第一个小于当前柱子的下标
                 while (!st.empty() && heights[i] < heights[st.top()])
                 {
                     int mid = st.top();
