@@ -14,78 +14,86 @@
 #include <memory>
 using namespace std;
 
-#ifndef __THREAD_POOL_H__
-#define __THREAD_POOL_H__
-#include <atomic>
-#include <mutex>
-#include <thread>
-#include <memory>
-#include <queue>
-#include <future>
-#include <vector>
-class ThreadPool
+int func1()
 {
-public:
-    using Task = std::packaged_task<void()>;
-    template <typename F, typename... Args>
-    auto commit(F &&f, Args &&...args) -> decltype(f(args...))
+    vector<int> weight = {1, 3, 4};
+    vector<int> value = {15, 20, 30};
+    int bagWeight = 4;
+
+    vector<vector<int>> dp(weight.size(), vector<int>(bagWeight + 1, 0));
+
+    for (int j = weight[0]; j <= bagWeight; ++j)
     {
-        using ReturnType = decltype(f(args...));
-        if (stop_.load())
-        {
-            return std::future<ReturnType>{};
-        }
-        auto task = std::make_shared<std::packaged<ReturnType()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-        std::future<ReturnType> ret = task->get_future();
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            tasks_.emplace([task]
-                           { (*task)(); });
-        }
-        cv_.notify_one();
-        return ret;
+        dp[0][j] = value[0];
     }
 
-private:
-    ThreadPool(unsigned int num = 5) : stop_(false)
+    for (int i = 1; i < weight.size(); ++i)
     {
-        if (num <= 0)
+        for (int j = 0; j <= bagWeight; ++j)
         {
-            thread_num_ = 1;
-        }
-        else
-        {
-            thread_num_ = num;
-        }
-        start();
-    }
-    void start()
-    {
-        for (unsigned int i = 0; i < thread_num_; ++i)
-        {
-            pool_.emplace_back([this]
-                               {
-                while (!stop_.load()) {
-                    Task task;
-                    {
-                        std::unique_lock<std::mutex> lock(mutex_);
-                        cv_.wait(lock, [this] {return stop_.load() || !tasks_.empty();});
-                        task = std::move(tasks_.front());
-                        tasks_.pop();
-                    }
-                    --thread_num_;
-                    task();
-                    ++thread_num_;
-                } });
+            if (j < weight[i])
+            {
+                dp[i][j] = dp[i - 1][j];
+            }
+            else
+            {
+                dp[i][j] = max(dp[i - 1][j], dp[i - 1][j - weight[i]] + value[i]);
+            }
         }
     }
+    return dp[weight.size() - 1][bagWeight];
+}
 
-private:
-    std::atomic<int> thread_num_;
-    std::atomic<bool> stop_;
-    std::vector<std::thread> pool_;
-    std::queue<Task> tasks_;
-    std::mutex mutex_;
-    std::condition_variable cv_;
-};
-#endif
+int func2()
+{
+    vector<int> weight = {1, 3, 4};
+    vector<int> value = {15, 20, 30};
+    int bagWeight = 4;
+
+    vector<int> dp(bagWeight + 1, 0);
+
+    for (int i = 0; i < weight.size(); ++i)
+    {
+        for (int j = bagWeight; j >= weight[i]; --j)
+        {
+            dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
+        }
+    }
+    return dp[bagWeight];
+}
+int func3()
+{
+    vector<int> weight = {1, 3, 4};
+    vector<int> value = {15, 20, 30};
+    int bagWeight = 4;
+
+    vector<int> dp(bagWeight + 1, 0);
+
+    for (int i = 0; i < weight.size(); ++i)
+    {
+        for (int j = weight[i]; j <= bagWeight; ++j)
+        {
+            dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
+        }
+    }
+    return dp[bagWeight];
+}
+
+int func4()
+{
+    vector<int> weight = {1, 3, 4};
+    vector<int> value = {15, 20, 30};
+    int bagWeight = 4;
+
+    vector<int> dp(bagWeight + 1, 0);
+
+    for (int j = 0; j <= bagWeight; ++j)
+    {
+        for (int i = 0; i < weight.size(); ++i)
+        {
+            if (j - weight[i] >= 0)
+                dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
+        }
+    }
+    return dp[bagWeight];
+}
