@@ -14,86 +14,26 @@
 #include <memory>
 using namespace std;
 
-int func1()
+#ifndef __THREAD_POOL_H__
+#define __THREAD_POOL_H__
+#include <thread>
+#include <atomic>
+#include <future>
+#include <mutex>
+#include <condition
+class ThreadPool
 {
-    vector<int> weight = {1, 3, 4};
-    vector<int> value = {15, 20, 30};
-    int bagWeight = 4;
+public:
+    using Task = std::packaged_task<void()>;
 
-    vector<vector<int>> dp(weight.size(), vector<int>(bagWeight + 1, 0));
+private:
 
-    for (int j = weight[0]; j <= bagWeight; ++j)
-    {
-        dp[0][j] = value[0];
-    }
-
-    for (int i = 1; i < weight.size(); ++i)
-    {
-        for (int j = 0; j <= bagWeight; ++j)
-        {
-            if (j < weight[i])
-            {
-                dp[i][j] = dp[i - 1][j];
-            }
-            else
-            {
-                dp[i][j] = max(dp[i - 1][j], dp[i - 1][j - weight[i]] + value[i]);
-            }
-        }
-    }
-    return dp[weight.size() - 1][bagWeight];
-}
-
-int func2()
-{
-    vector<int> weight = {1, 3, 4};
-    vector<int> value = {15, 20, 30};
-    int bagWeight = 4;
-
-    vector<int> dp(bagWeight + 1, 0);
-
-    for (int i = 0; i < weight.size(); ++i)
-    {
-        for (int j = bagWeight; j >= weight[i]; --j)
-        {
-            dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
-        }
-    }
-    return dp[bagWeight];
-}
-int func3()
-{
-    vector<int> weight = {1, 3, 4};
-    vector<int> value = {15, 20, 30};
-    int bagWeight = 4;
-
-    vector<int> dp(bagWeight + 1, 0);
-
-    for (int i = 0; i < weight.size(); ++i)
-    {
-        for (int j = weight[i]; j <= bagWeight; ++j)
-        {
-            dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
-        }
-    }
-    return dp[bagWeight];
-}
-
-int func4()
-{
-    vector<int> weight = {1, 3, 4};
-    vector<int> value = {15, 20, 30};
-    int bagWeight = 4;
-
-    vector<int> dp(bagWeight + 1, 0);
-
-    for (int j = 0; j <= bagWeight; ++j)
-    {
-        for (int i = 0; i < weight.size(); ++i)
-        {
-            if (j - weight[i] >= 0)
-                dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
-        }
-    }
-    return dp[bagWeight];
-}
+private:
+    std::atomic<int> thread_num_;
+    std::atomic<bool> stop_;
+    std::vector<std::thread> pool_;
+    std::queue<Task> tasks_;
+    std::condition_variable cv_;
+    std::mutex mutex_;
+};  
+#endif
