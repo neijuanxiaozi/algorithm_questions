@@ -182,3 +182,108 @@ private:
         father[v] = u;
     }
 };
+
+/*
+207. 课程表 https://leetcode.cn/problems/course-schedule/description/?envType=study-plan-v2&envId=top-interview-150
+
+    你这个学期必须选修 numCourses 门课程，记为 0 到 numCourses - 1 。
+    在选修某些课程之前需要一些先修课程。 先修课程按数组 prerequisites 给出，
+    其中 prerequisites[i] = [ai, bi] ，表示如果要学习课程 ai 则 必须 先学习课程  bi 。
+    例如，先修课程对 [0, 1] 表示：想要学习课程 0 ，你需要先完成课程 1 。
+    请你判断是否可能完成所有课程的学习？如果可以，返回 true ；否则，返回 false 。
+
+示例 1：
+    输入：numCourses = 2, prerequisites = [[1,0]]
+    输出：true
+    解释：总共有 2 门课程。学习课程 1 之前，你需要完成课程 0 。这是可能的。
+
+
+示例 2：
+    输入：numCourses = 2, prerequisites = [[1,0],[0,1]]
+    输出：false
+    解释：总共有 2 门课程。学习课程 1 之前，你需要先完成​课程 0 ；并且学习课程 0 之前，你还应先完成课程 1 。这是不可能的。
+*/
+
+//广度优先遍历
+class Solution {
+private:
+    vector<vector<int>> edges;
+    //每个节点有三个状态 未搜索 搜索中 已完成 对用0 1 2
+    vector<int> visited;
+    bool valid = true;
+public:
+    void dfs(int u) {
+        visited[u] = 1;
+        for (int v : edges[u]) {
+            if (visited[v] == 0) {
+                dfs(v);
+                if (!valid) {
+                    return;
+                }
+            }
+            else if (visited[v] == 1) {
+                valid = false;
+                return;
+            }
+        }
+        visited[u] = 2;
+    }
+    bool canFinish(int numCourses, vector<vector<int>>& prerequisites) {
+        edges.resize(numCourses);
+        visited.resize(numCourses);
+        for (const auto &info : prerequisites) {
+            edges[info[1]].push_back(info[0]);
+        }
+        for (int i = 0; i < numCourses && valid; ++i) {
+            if (!visited[i]) {
+                dfs(i);
+            }
+        }
+        return valid;
+    }
+};
+
+//深度优先遍历
+class Solution {
+private:
+    vector<vector<int>> edges;//存储所有的边
+    vector<int> visited;//每个节点有三个状态 未搜索 搜索中 已完成 对用0 1 2
+    bool valid = true;
+public:
+    void dfs(int u) {
+        //将当前节点状态置为正在搜索
+        visited[u] = 1;
+        //遍历当前节点的出边
+        for (int v : edges[u]) {
+            //如果未访问过 就向下遍历
+            if (visited[v] == 0) {
+                dfs(v);
+                if (!valid) {
+                    return;
+                }
+            }
+            //如果在向下遍历的过程中出现 遍历过的节点 说明出现了环
+            else if (visited[v] == 1) {
+                valid = false;
+                return;
+            }
+        }
+        //当前节点遍历完  状态改为2
+        visited[u] = 2;
+    }
+    bool canFinish(int numCourses, vector<vector<int>>& prerequisites) {
+        edges.resize(numCourses);
+        visited.resize(numCourses);
+        //保存所有的边
+        for (const auto &info : prerequisites) {
+            edges[info[1]].push_back(info[0]);
+        }
+        for (int i = 0; i < numCourses && valid; ++i) {
+            //如果当前节点 未搜索就从当前节点出发 深度遍历
+            if (!visited[i]) {
+                dfs(i);
+            }
+        }
+        return valid;
+    }
+};

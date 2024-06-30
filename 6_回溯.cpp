@@ -36,16 +36,16 @@ using namespace std;
 class Solution
 {
 private:
-    vector<string> result; // 记录结果
+    vector<string> res; // 记录结果
     // startIndex: 搜索的起始位置,pointNum:添加逗点的数量
     void backtracking(string &s, int startIndex, int pointNum)
     {
         if (pointNum == 3)
         { // 逗点数量为3时,分隔结束
-            // 判断第四段子字符串是否合法,如果合法就放进result中
+            // 判断第四段子字符串是否合法,如果合法就放进res中
             if (isValid(s, startIndex, s.size() - 1))
             {
-                result.push_back(s);
+                res.push_back(s);
             }
             return;
         }
@@ -93,11 +93,11 @@ private:
 public:
     vector<string> restoreIpAddresses(string s)
     {
-        result.clear();
+        res.clear();
         if (s.size() < 4 || s.size() > 12)
-            return result; // 算是剪枝了
+            return res; // 算是剪枝了
         backtracking(s, 0, 0);
-        return result;
+        return res;
     }
 };
 
@@ -137,27 +137,27 @@ public:
 class Solution
 {
 public:
-    vector<string> result;
+    vector<string> res;
     unordered_map<string, map<string, int>> targets;
     bool backtracking(int tickNum)
     {
-        if (result.size() == tickNum + 1)
+        if (res.size() == tickNum + 1)
         {
             return true;
         }
 
-        for (auto &target : targets[result.back()])
+        for (auto &target : targets[res.back()])
         {
             if (target.second > 0)
             {
-                result.push_back(target.first);
+                res.push_back(target.first);
                 --target.second;
                 if (backtracking(tickNum))
                 {
                     return true;
                 }
                 ++target.second;
-                result.pop_back();
+                res.pop_back();
             }
         }
         return false;
@@ -165,14 +165,14 @@ public:
     vector<string> findItinerary(vector<vector<string>> &tickets)
     {
         targets.clear();
-        result.clear();
+        res.clear();
         for (const vector<string> &vec : tickets)
         {
             ++targets[vec[0]][vec[1]]; // 记录映射关系
         }
-        result.push_back("JFK");
+        res.push_back("JFK");
         backtracking(tickets.size());
-        return result;
+        return res;
     }
 };
 
