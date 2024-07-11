@@ -186,6 +186,16 @@ private:
 
 /*
 卡码网 53.寻宝 https://kamacoder.com/problempage.php?pid=1053
+
+题目描述：
+    在世界的某个区域，有一些分散的神秘岛屿，每个岛屿上都有一种珍稀的资源或者宝藏。国王打算在这些岛屿上建公路，方便运输。
+    不同岛屿之间，路途距离不同，国王希望你可以规划建公路的方案，如何可以以最短的总公路距离将 所有岛屿联通起来。
+    给定一张地图，其中包括了所有的岛屿，以及它们之间的距离。以最小化公路建设长度，确保可以链接到所有岛屿。
+输入描述：
+    第一行包含两个整数V 和 E，V代表顶点数，E代表边数 。顶点编号是从1到V。例如：V=2，一个有两个顶点，分别是1和2。
+    接下来共有 E 行，每行三个整数 v1，v2 和 val，v1 和 v2 为边的起点和终点，val代表边的权值。
+输出描述：
+    输出联通所有岛屿的最小路径总距离
 */
 //最小生成树 prim算法
 #include<iostream>
@@ -325,6 +335,7 @@ int main() {
     // 并查集初始化
     init();
 
+    vector<Edge> res; //存储最小生成树的边
     // 从头开始遍历边
     for (Edge edge : edges) {
         // 并查集，搜出两个节点的祖先
@@ -333,6 +344,7 @@ int main() {
 
         // 如果祖先不同，则不在同一个集合
         if (x != y) {
+            res.push_back(edge);//收集加入树的边
             result_val += edge.val; // 这条边可以作为生成树的边
             join(x, y); // 两个节点加入到同一个集合
         }
@@ -365,11 +377,15 @@ int main() {
 //广度优先遍历
 class Solution {
 private:
+    // 存储有向图
     vector<vector<int>> edges;
+    // 存储每个节点的入度
     vector<int> indeg;
+    // 存储答案
+    vector<int> result;
 
 public:
-    bool canFinish(int numCourses, vector<vector<int>>& prerequisites) {
+    vector<int> findOrder(int numCourses, vector<vector<int>>& prerequisites) {
         edges.resize(numCourses);
         indeg.resize(numCourses);
         for (const auto& info: prerequisites) {
@@ -378,28 +394,35 @@ public:
         }
 
         queue<int> q;
+        // 将所有入度为 0 的节点放入队列中
         for (int i = 0; i < numCourses; ++i) {
             if (indeg[i] == 0) {
                 q.push(i);
             }
         }
 
-        int visited = 0;
         while (!q.empty()) {
-            ++visited;
+            // 从队首取出一个节点
             int u = q.front();
             q.pop();
+            // 放入答案中
+            result.push_back(u);
             for (int v: edges[u]) {
                 --indeg[v];
+                // 如果相邻节点 v 的入度为 0，就可以选 v 对应的课程了
                 if (indeg[v] == 0) {
                     q.push(v);
                 }
             }
         }
 
-        return visited == numCourses;
+        if (result.size() != numCourses) {
+            return {};
+        }
+        return result;
     }
-};
+}
+
 
 
 //深度优先遍历
