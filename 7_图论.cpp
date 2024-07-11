@@ -584,3 +584,73 @@ public:
         return valid;
     }
 };
+
+/*****************************最短路径**********************************************/
+
+/*
+dijkstra算法
+卡码网：47. 参加科学大会 https://kamacoder.com/problempage.php?pid=1047
+【题目描述】
+    小明是一位科学家，他需要参加一场重要的国际科学大会，以展示自己的最新研究成果。
+    小明的起点是第一个车站，终点是最后一个车站。然而，途中的各个车站之间的道路状况、交通拥堵程度以及可能的自然因素（如天气变化）等不同，这些因素都会影响每条路径的通行时间。
+    小明希望能选择一条花费时间最少的路线，以确保他能够尽快到达目的地。
+【输入描述】
+    第一行包含两个正整数，第一个正整数 N 表示一共有 N 个公共汽车站，第二个正整数 M 表示有 M 条公路。
+    接下来为 M 行，每行包括三个整数，S、E 和 V，代表了从 S 车站可以单向直达 E 车站，并且需要花费 V 单位的时间。
+【输出描述】
+    输出一个整数，代表小明从起点到终点所花费的最小时间。
+*/
+
+#include <iostream>
+#include <vector>
+#include <climits>
+using namespace std;
+int main() {
+    int n, m, p1, p2, val;
+    cin >> n >> m;
+
+    vector<vector<int>> grid(n + 1, vector<int>(n + 1, INT_MAX));
+    for(int i = 0; i < m; i++){
+        cin >> p1 >> p2 >> val;
+        grid[p1][p2] = val;
+    }
+
+    int start = 1;
+    int end = n;
+
+    // 存储从源点到每个节点的最短距离
+    std::vector<int> minDist(n + 1, INT_MAX);
+
+    // 记录顶点是否被访问过
+    std::vector<bool> visited(n + 1, false);
+
+    minDist[start] = 0;  // 起始点到自身的距离为0
+
+    for (int i = 1; i <= n; i++) { // 遍历所有节点
+
+        int minVal = INT_MAX;
+        int cur = 1;
+
+        // 1、选距离源点最近且未访问过的节点
+        for (int v = 1; v <= n; ++v) {
+            if (!visited[v] && minDist[v] < minVal) {
+                minVal = minDist[v];
+                cur = v;
+            }
+        }
+
+        visited[cur] = true;  // 2、标记该节点已被访问
+
+        // 3、第三步，更新非访问节点到源点的距离（即更新minDist数组）
+        for (int v = 1; v <= n; v++) {
+            if (!visited[v] && grid[cur][v] != INT_MAX && minDist[cur] + grid[cur][v] < minDist[v]) {
+                minDist[v] = minDist[cur] + grid[cur][v];
+            }
+        }
+
+    }
+
+    if (minDist[end] == INT_MAX) cout << -1 << endl; // 不能到达终点
+    else cout << minDist[end] << endl; // 到达终点最短路径
+
+}
