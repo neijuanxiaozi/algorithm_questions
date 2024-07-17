@@ -6,7 +6,8 @@ using namespace std;
 
 /*
 909. 蛇梯棋  https://leetcode.cn/problems/snakes-and-ladders/description/?envType=study-plan-v2&envId=top-interview-150
-    给你一个大小为 n x n 的整数矩阵 board ，方格按从 1 到 n2 编号，编号遵循 转行交替方式 ，从左下角开始 （即，从 board[n - 1][0] 开始）每一行交替方向。
+    给你一个大小为 n x n 的整数矩阵 board ，方格按从 1 到 n2 编号，编号遵循 转行交替方式 ，
+    从左下角开始 （即，从 board[n - 1][0] 开始）每一行交替方向。
     玩家从棋盘上的方格 1 （总是在最后一行、第一列）开始出发。
     每一回合，玩家需要从当前方格 curr 开始出发，按下述要求前进：
     选定目标方格 next ，目标方格的编号符合范围 [curr + 1, min(curr + 6, n2)] 。
@@ -600,7 +601,7 @@ dijkstra算法
 【输出描述】
     输出一个整数，代表小明从起点到终点所花费的最小时间。
 */
-
+//dijkstra朴素版 时间复杂度O(n^2)
 #include <iostream>
 #include <vector>
 #include <climits>
@@ -653,4 +654,99 @@ int main() {
     if (minDist[end] == INT_MAX) cout << -1 << endl; // 不能到达终点
     else cout << minDist[end] << endl; // 到达终点最短路径
 
+}
+
+//dijkstra堆优化版
+
+/*
+    用邻接表存储边，并且带权值
+
+其实思路依然是 dijkstra 三部曲：
+    第一步，选源点到哪个节点近且该节点未被访问过
+    第二步，该最近节点被标记访问过
+    第三步，更新非访问节点到源点的距离（即更新minDist数组）
+    只不过之前是 通过遍历节点来遍历边，通过两层for循环来寻找距离源点最近节点。 
+    这次我们直接遍历边，且通过堆来对边进行排序，达到直接选择距离源点最近节点。
+
+    先来看一下针对这三部曲，如果用堆来优化。
+    那么三部曲中的第一步（选源点到哪个节点近且该节点未被访问过），我们如何选？
+    我们要选择距离源点近的节点（即：该边的权值最小），所以 我们需要一个 小顶堆 来帮我们对边的权值排序，
+    每次从小顶堆堆顶 取边就是权值最小的边。
+*/
+
+#include <iostream>
+#include <vector>
+#include <list>
+#include <queue>
+#include <climits>
+using namespace std; 
+// 小顶堆
+class mycomparison {
+public:
+    bool operator()(const pair<int, int>& lhs, const pair<int, int>& rhs) {
+        return lhs.second > rhs.second;
+    }
+};
+// 定义一个结构体来表示带权重的边
+struct Edge {
+    int to;  // 邻接顶点
+    int val; // 边的权重
+
+    Edge(int t, int w): to(t), val(w) {}  // 构造函数
+};
+
+int main() {
+    int n, m, p1, p2, val;
+    cin >> n >> m;
+
+    vector<list<Edge>> grid(n + 1);
+
+    for(int i = 0; i < m; i++){
+        cin >> p1 >> p2 >> val; 
+        // p1 指向 p2，权值为 val
+        grid[p1].push_back(Edge(p2, val));
+
+    }
+
+    int start = 1;  // 起点
+    int end = n;    // 终点
+
+    // 存储从源点到每个节点的最短距离
+    std::vector<int> minDist(n + 1, INT_MAX);
+
+    // 记录顶点是否被访问过
+    std::vector<bool> visited(n + 1, false); 
+    
+    // 优先队列中存放 pair<节点，源点到该节点的权值>
+    priority_queue<pair<int, int>, vector<pair<int, int>>, mycomparison> pq;
+
+
+    // 初始化队列，源点到源点的距离为0，所以初始为0
+    pq.push(pair<int, int>(start, 0)); 
+    
+    minDist[start] = 0;  // 起始点到自身的距离为0
+
+    while (!pq.empty()) {
+        // 1. 第一步，选源点到哪个节点近且该节点未被访问过 （通过优先级队列来实现）
+        // <节点， 源点到该节点的距离>
+        pair<int, int> cur = pq.top(); pq.pop();
+
+        if (visited[cur.first]) continue;
+
+        // 2. 第二步，该最近节点被标记访问过
+        visited[cur.first] = true;
+
+        // 3. 第三步，更新非访问节点到源点的距离（即更新minDist数组）
+        for (Edge edge : grid[cur.first]) { // 遍历 cur指向的节点，cur指向的节点为 edge
+            // cur指向的节点edge.to，这条边的权值为 edge.val
+            if (!visited[edge.to] && minDist[cur.first] + edge.val < minDist[edge.to]) { // 更新minDist
+                minDist[edge.to] = minDist[cur.first] + edge.val;
+                pq.push(pair<int, int>(edge.to, minDist[edge.to]));
+            }
+        }
+
+    }
+
+    if (minDist[end] == INT_MAX) cout << -1 << endl; // 不能到达终点
+    else cout << minDist[end] << endl; // 到达终点最短路径
 }
