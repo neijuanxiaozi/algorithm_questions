@@ -383,7 +383,7 @@ int main() {
     cin >> v >> e;
     while (e--) {
         cin >> v1 >> v2 >> val;
-        edges.push_back({v1, v2, val});
+        edges.emplace_back(v1, v2, val);
     }
 
     // 执行Kruskal算法
@@ -772,3 +772,44 @@ Bellman_ford 是可以计算负权值的单源最短路算法。
     如果能够从城市 1 到连通到城市 n， 请输出一个整数，表示运输成本。
     如果该整数是负数，则表示实现了盈利。如果从城市 1 没有路径可达城市 n，请输出 "unconnected"。
 */
+
+#include <iostream>
+#include <vector>
+#include <list>
+#include <climits>
+using namespace std;
+
+int main() {
+    int n, m, p1, p2, val;
+    cin >> n >> m;
+
+    vector<vector<int>> grid;
+
+    // 将所有边保存起来
+    for(int i = 0; i < m; i++){
+        cin >> p1 >> p2 >> val;
+        // p1 指向 p2，权值为 val
+        grid.push_back({p1, p2, val});
+
+    }
+    int start = 1;  // 起点
+    int end = n;    // 终点
+
+    vector<int> minDist(n + 1 , INT_MAX);
+    minDist[start] = 0;
+    for (int i = 1; i < n; i++) { // 对所有边 松弛 n-1 次
+        for (vector<int> &side : grid) { // 每一次松弛，都是对所有边进行松弛
+            int from = side[0]; // 边的出发点
+            int to = side[1]; // 边的到达点
+            int price = side[2]; // 边的权值
+            // 松弛操作 
+            // minDist[from] != INT_MAX 防止从未计算过的节点出发
+            if (minDist[from] != INT_MAX && minDist[to] > minDist[from] + price) { 
+                minDist[to] = minDist[from] + price;  
+            }
+        }
+    }
+    if (minDist[end] == INT_MAX) cout << "unconnected" << endl; // 不能到达终点
+    else cout << minDist[end] << endl; // 到达终点最短路径
+
+}
