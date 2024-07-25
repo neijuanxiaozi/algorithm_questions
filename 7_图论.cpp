@@ -880,3 +880,81 @@ int main() {
     if (minDist[end] == INT_MAX) cout << "unconnected" << endl; // 不能到达终点
     else cout << minDist[end] << endl; // 到达终点最短路径
 }
+
+/*
+Bellman_ford判断负权回路
+    SPFA 那么节点都是进队列的，那么节点进入队列几次后 足够判断该图是否有负权回路呢？
+    在 0094.城市间货物运输I-SPFA 中，我们讲过 在极端情况下，即：所有节点都与其他节点相连，
+    每个节点的入度为 n-1 （n为节点数量），所以每个节点最多加入 n-1 次队列。
+    那么如果节点加入队列的次数 超过了 n-1次 ，那么该图就一定有负权回路。
+*/
+
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <list>
+#include <climits>
+using namespace std;
+
+struct Edge { //邻接表
+    int to;  // 链接的节点
+    int val; // 边的权重
+
+    Edge(int t, int w): to(t), val(w) {}  // 构造函数
+};
+
+
+int main() {
+    int n, m, p1, p2, val;
+    cin >> n >> m;
+
+    vector<list<Edge>> grid(n + 1); // 邻接表
+
+    // 将所有边保存起来
+    for(int i = 0; i < m; i++){
+        cin >> p1 >> p2 >> val;
+        // p1 指向 p2，权值为 val
+        grid[p1].push_back(Edge(p2, val));
+    }
+    int start = 1;  // 起点
+    int end = n;    // 终点
+
+    vector<int> minDist(n + 1 , INT_MAX);
+    minDist[start] = 0;
+
+    queue<int> que;
+    que.push(start); // 队列里放入起点 
+    
+    vector<int> count(n+1, 0); // 记录节点加入队列几次
+    count[start]++;
+
+    bool flag = false;
+    while (!que.empty()) {
+
+        int node = que.front(); que.pop();
+
+        for (Edge edge : grid[node]) {
+            int from = node;
+            int to = edge.to;
+            int value = edge.val;
+            if (minDist[to] > minDist[from] + value) { // 开始松弛
+                minDist[to] = minDist[from] + value;
+                que.push(to);
+                count[to]++; 
+                if (count[to] == n) {// 如果加入队列次数超过 n-1次 就说明该图与负权回路
+                    flag = true;
+                    while (!que.empty()) que.pop();
+                    break;
+                }
+            }
+        }
+    }
+
+    if (flag) cout << "circle" << endl;
+    else if (minDist[end] == INT_MAX) {
+        cout << "unconnected" << endl;
+    } else {
+        cout << minDist[end] << endl;
+    }
+
+}
