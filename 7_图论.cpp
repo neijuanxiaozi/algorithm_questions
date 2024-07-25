@@ -819,6 +819,7 @@ int main() {
 
 /*
 Bellman_ford队列优化算法(又名SPFA)
+卡码网 城市间货物运输I https://kamacoder.com/problempage.php?pid=1152
     Bellman_ford 算法每次松弛 都是对所有边进行松弛。但真正有效的松弛，是基于已经计算过的节点在做的松弛。
     所以 Bellman_ford 算法 每次都是对所有边进行松弛，其实是多做了一些无用功。
     只需要对 上一次松弛的时候更新过的节点作为出发节点所连接的边 进行松弛就够了。
@@ -879,4 +880,228 @@ int main() {
 
     if (minDist[end] == INT_MAX) cout << "unconnected" << endl; // 不能到达终点
     else cout << minDist[end] << endl; // 到达终点最短路径
+}
+
+/*
+Bellman_ford判断负权回路
+卡码网：95. 城市间货物运输 II
+【题目描述】
+    某国为促进城市间经济交流，决定对货物运输提供补贴。共有 n 个编号为 1 到 n 的城市，通过道路网络连接，网络中的道路仅允许从某个城市单向通行到另一个城市，不能反向通行。
+    网络中的道路都有各自的运输成本和政府补贴，道路的权值计算方式为：运输成本 - 政府补贴。权值为正表示扣除了政府补贴后运输货物仍需支付的费用；
+    权值为负则表示政府的补贴超过了支出的运输成本，实际表现为运输过程中还能赚取一定的收益。
+    然而，在评估从城市 1 到城市 n 的所有可能路径中综合政府补贴后的最低运输成本时，存在一种情况：图中可能出现负权回路。
+    负权回路是指一系列道路的总权值为负，这样的回路使得通过反复经过回路中的道路，理论上可以无限地减少总成本或无限地增加总收益。
+    为了避免货物运输商采用负权回路这种情况无限的赚取政府补贴，算法还需检测这种特殊情况。
+    请找出从城市 1 到城市 n 的所有可能路径中，综合政府补贴后的最低运输成本。同时能够检测并适当处理负权回路的存在。
+    城市 1 到城市 n 之间可能会出现没有路径的情况。
+    
+【解题思路】
+    SPFA 那么节点都是进队列的，那么节点进入队列几次后 足够判断该图是否有负权回路呢？
+    在 0094.城市间货物运输I-SPFA 中，我们讲过 在极端情况下，即：所有节点都与其他节点相连，
+    每个节点的入度为 n-1 （n为节点数量），所以每个节点最多加入 n-1 次队列。
+    那么如果节点加入队列的次数 超过了 n-1次 ，那么该图就一定有负权回路。
+*/
+
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <list>
+#include <climits>
+using namespace std;
+
+struct Edge { //邻接表
+    int to;  // 链接的节点
+    int val; // 边的权重
+
+    Edge(int t, int w): to(t), val(w) {}  // 构造函数
+};
+
+
+int main() {
+    int n, m, p1, p2, val;
+    cin >> n >> m;
+
+    vector<list<Edge>> grid(n + 1); // 邻接表
+
+    // 将所有边保存起来
+    for(int i = 0; i < m; i++){
+        cin >> p1 >> p2 >> val;
+        // p1 指向 p2，权值为 val
+        grid[p1].push_back(Edge(p2, val));
+    }
+    int start = 1;  // 起点
+    int end = n;    // 终点
+
+    vector<int> minDist(n + 1 , INT_MAX);
+    minDist[start] = 0;
+
+    queue<int> que;
+    que.push(start); // 队列里放入起点 
+    
+    vector<int> count(n+1, 0); // 记录节点加入队列几次
+    count[start]++;
+
+    bool flag = false;
+    while (!que.empty()) {
+
+        int node = que.front(); que.pop();
+
+        for (Edge edge : grid[node]) {
+            int from = node;
+            int to = edge.to;
+            int value = edge.val;
+            if (minDist[to] > minDist[from] + value) { // 开始松弛
+                minDist[to] = minDist[from] + value;
+                que.push(to);
+                count[to]++; 
+                if (count[to] == n) {// 如果加入队列次数超过 n-1次 就说明该图与负权回路
+                    flag = true;
+                    while (!que.empty()) que.pop();
+                    break;
+                }
+            }
+        }
+    }
+
+    if (flag) cout << "circle" << endl;
+    else if (minDist[end] == INT_MAX) {
+        cout << "unconnected" << endl;
+    } else {
+        cout << minDist[end] << endl;
+    }
+
+}
+
+/* 
+Bellman_ford之单源有限最短路
+卡码网：96. 城市间货物运输 III
+【题目描述】
+    某国为促进城市间经济交流，决定对货物运输提供补贴。共有 n 个编号为 1 到 n 的城市，通过道路网络连接，
+    网络中的道路仅允许从某个城市单向通行到另一个城市，不能反向通行。
+    网络中的道路都有各自的运输成本和政府补贴，道路的权值计算方式为：运输成本 - 政府补贴。
+    权值为正表示扣除了政府补贴后运输货物仍需支付的费用；
+    权值为负则表示政府的补贴超过了支出的运输成本，实际表现为运输过程中还能赚取一定的收益。
+    请计算在最多经过 k 个城市的条件下，从城市 src 到城市 dst 的最低运输成本。
+【解题思路】
+    本题为单源有限最短路问题，同样是 kama94.城市间货物运输I 延伸题目。
+    注意题目中描述是 最多经过 k 个城市的条件下，而不是一定经过k个城市，也可以经过的城市数量比k小，但要最短的路径。
+    在 kama94.城市间货物运输I 中我们讲了：对所有边松弛一次，相当于计算 起点到达 与起点一条边相连的节点 的最短距离。
+    节点数量为n，起点到终点，最多是 n-1 条边相连。 那么对所有边松弛 n-1 次 就一定能得到 起点到达 终点的最短距离。
+    本题是最多经过 k 个城市， 那么是 k + 1条边相连的节点。
+*/
+
+// 版本二
+#include <iostream>
+#include <vector>
+#include <list>
+#include <climits>
+using namespace std;
+
+int main() {
+    int src, dst,k ,p1, p2, val ,m , n;
+    
+    cin >> n >> m;
+
+    vector<vector<int>> grid;
+
+    for(int i = 0; i < m; i++){
+        cin >> p1 >> p2 >> val;
+        grid.push_back({p1, p2, val});
+    }
+
+    cin >> src >> dst >> k;
+
+    vector<int> minDist(n + 1 , INT_MAX);
+    minDist[src] = 0;
+    vector<int> minDist_copy(n + 1); // 用来记录上一次遍历的结果
+    for (int i = 1; i <= k + 1; i++) {
+        minDist_copy = minDist; // 获取上一次计算的结果
+        for (vector<int> &side : grid) {
+            int from = side[0];
+            int to = side[1];
+            int price = side[2];
+            // 注意使用 minDist_copy 来计算 minDist 
+            if (minDist_copy[from] != INT_MAX && minDist[to] > minDist_copy[from] + price) {  
+                minDist[to] = minDist_copy[from] + price;
+            }
+        }
+    }
+    if (minDist[dst] == INT_MAX) cout << "unreachable" << endl; // 不能到达终点
+    else cout << minDist[dst] << endl; // 到达终点最短路径
+}
+
+/*
+Bellman_ford之单源有限最短路
+SPFA解法：
+    使用SPFA算法解决本题的时候，关键在于如何控制松弛k次。
+    其实实现不难，但有点技巧，可以用一个变量 que_size 记录每一轮松弛入队列的所有节点数量。
+    下一轮松弛的时候，就把队列里 que_size 个节点都弹出来，就是上一轮松弛入队列的节点。
+    重复节点可以不用入队列。
+    因为重复节点入队列，下次从队列里取节点的时候，该节点要取很多次，而且都是重复计算。
+*/
+
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <list>
+#include <climits>
+using namespace std;
+
+struct Edge { //邻接表
+    int to;  // 链接的节点
+    int val; // 边的权重
+
+    Edge(int t, int w): to(t), val(w) {}  // 构造函数
+};
+
+
+int main() {
+    int n, m, p1, p2, val;
+    cin >> n >> m;
+
+    vector<list<Edge>> grid(n + 1); // 邻接表
+
+    // 将所有边保存起来
+    for(int i = 0; i < m; i++){
+        cin >> p1 >> p2 >> val;
+        // p1 指向 p2，权值为 val
+        grid[p1].push_back(Edge(p2, val));
+    }
+    int start, end, k;
+    cin >> start >> end >> k;
+
+    k++;
+
+    vector<int> minDist(n + 1 , INT_MAX);
+    vector<int> minDist_copy(n + 1); // 用来记录每一次遍历的结果
+
+    minDist[start] = 0;
+
+    queue<int> que;
+    que.push(start); // 队列里放入起点
+
+    int que_size;
+    while (k-- && !que.empty()) {
+
+        vector<bool> visited(n + 1, false); // 每一轮松弛中，控制节点不用重复入队列
+        minDist_copy = minDist; 
+        que_size = que.size(); 
+        while (que_size--) { 
+            int node = que.front(); que.pop();
+            for (Edge edge : grid[node]) {
+                int from = node;
+                int to = edge.to;
+                int price = edge.val;
+                if (minDist[to] > minDist_copy[from] + price) {
+                    minDist[to] = minDist_copy[from] + price;
+                    if(visited[to]) continue; // 不用重复放入队列，但需要重复松弛，所以放在这里位置
+                    visited[to] = true;
+                    que.push(to);
+                }
+            }
+
+        }
+    }
+    if (minDist[end] == INT_MAX) cout << "unreachable" << endl;
+    else cout << minDist[end] << endl;
 }
