@@ -1105,3 +1105,104 @@ int main() {
     if (minDist[end] == INT_MAX) cout << "unreachable" << endl;
     else cout << minDist[end] << endl;
 }
+
+
+/*
+Floyd算法
+【题目描述】
+    小明喜欢去公园散步，公园内布置了许多的景点，相互之间通过小路连接，小明希望在观看景点的同时，能够节省体力，走最短的路径。
+    给定一个公园景点图，图中有 N 个景点（编号为 1 到 N），以及 M 条双向道路连接着这些景点。每条道路上行走的距离都是已知的。
+    小明有 Q 个观景计划，每个计划都有一个起点 start 和一个终点 end，表示他想从景点 start 前往景点 end。
+    由于小明希望节省体力，他想知道每个观景计划中从起点到终点的最短路径长度。 
+    请你帮助小明计算出每个观景计划的最短路径长度。
+
+【解题思路】
+    Floyd算法核心思想是动态规划。
+    例如我们再求节点1 到 节点9 的最短距离，用二维数组来表示即：grid[1][9]，如果最短距离是10 ，那就是 grid[1][9] = 10。
+    那 节点1 到 节点9 的最短距离 是不是可以由 节点1 到节点5的最短距离 + 节点5到节点9的最短距离组成呢？
+    即 grid[1][9] = grid[1][5] + grid[5][9]
+    节点1 到节点5的最短距离 是不是可以有 节点1 到 节点3的最短距离 + 节点3 到 节点5 的最短距离组成呢？
+    即 grid[1][5] = grid[1][3] + grid[3][5]
+    以此类推，节点1 到 节点3的最短距离 可以由更小的区间组成。
+    那么这样我们是不是就找到了，子问题推导求出整体最优方案的递归关系呢。
+    节点1 到 节点9 的最短距离 可以由 节点1 到节点5的最短距离 + 节点5到节点9的最短距离组成， 
+    也可以有 节点1 到节点7的最短距离 + 节点7 到节点9的最短距离的距离组成。
+*/
+
+#include <iostream>
+#include <vector>
+#include <list>
+using namespace std;
+
+int main() {
+    int n, m, p1, p2, val;
+    cin >> n >> m;
+
+    vector<vector<vector<int>>> grid(n + 1, vector<vector<int>>(n + 1, vector<int>(n + 1, 10005)));  // 因为边的最大距离是10^4
+    for(int i = 0; i < m; i++){
+        cin >> p1 >> p2 >> val;
+        grid[p1][p2][0] = val;
+        grid[p2][p1][0] = val; // 注意这里是双向图
+
+    }
+    // 开始 floyd
+    for (int k = 1; k <= n; k++) {
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= n; j++) {
+                grid[i][j][k] = min(grid[i][j][k-1], grid[i][k][k-1] + grid[k][j][k-1]);
+            }
+        }
+    }
+    // 输出结果
+    int z, start, end;
+    cin >> z;
+    while (z--) {
+        cin >> start >> end;
+        if (grid[start][end][n] == 10005) cout << -1 << endl;
+        else cout << grid[start][end][n] << endl;
+    }
+}
+/*
+【空间优化】
+    这里 我们可以做一下 空间上的优化，从滚动数组的角度来看，我们定义一个 grid[n + 1][ n + 1][2] 这么大的数组就可以，
+    因为k 只是依赖于 k-1的状态，并不需要记录k-2，k-3，k-4 等等这些状态。
+    那么我们只需要记录 grid[i][j][1] 和 grid[i][j][0] 就好，之后就是 grid[i][j][1] 和 grid[i][j][0] 交替滚动。
+    在进一步想，如果本层计算（本层计算即k相同，从三维角度来讲） gird[i][j] 用到了 本层中刚计算好的 grid[i][k] 会有什么问题吗？
+    如果 本层刚计算好的 grid[i][k] 比上一层 （即k-1层）计算的 grid[i][k] 小，说明确实有 i 到 k 的更短路径，那么基于 更小的 grid[i][k] 去计算 gird[i][j] 没有问题。
+    如果 本层刚计算好的 grid[i][k] 比上一层 （即k-1层）计算的 grid[i][k] 大， 这不可能，因为这样也不会做更新 grid[i][k]的操作。
+    所以本层计算中，使用了本层计算过的 grid[i][k] 和 grid[k][j] 是没问题的。
+    那么就没必要区分，grid[i][k] 和 grid[k][j] 是 属于 k - 1 层的呢，还是 k 层的。
+*/
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n, m, p1, p2, val;
+    cin >> n >> m;
+
+    vector<vector<int>> grid(n + 1, vector<int>(n + 1, 10005));  // 因为边的最大距离是10^4
+
+    for(int i = 0; i < m; i++){
+        cin >> p1 >> p2 >> val;
+        grid[p1][p2] = val;
+        grid[p2][p1] = val; // 注意这里是双向图
+
+    }
+    // 开始 floyd
+    for (int k = 1; k <= n; k++) {
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= n; j++) {
+                grid[i][j] = min(grid[i][j], grid[i][k] + grid[k][j]);
+            }
+        }
+    }
+    // 输出结果
+    int z, start, end;
+    cin >> z;
+    while (z--) {
+        cin >> start >> end;
+        if (grid[start][end] == 10005) cout << -1 << endl;
+        else cout << grid[start][end] << endl;
+    }
+}
