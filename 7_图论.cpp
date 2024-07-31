@@ -1206,3 +1206,111 @@ int main() {
         else cout << grid[start][end] << endl;
     }
 }
+
+
+/*
+A*算法精讲
+
+【题目描述】
+    在象棋中，马和象的移动规则分别是“马走日”和“象走田”。
+    现给定骑士的起始坐标和目标坐标，要求根据骑士的移动规则，计算从起点到达目标点所需的最短步数。
+    骑士移动规则如图，红色是起始位置，黄色是骑士可以走的地方
+棋盘大小 1000 x 1000（棋盘的 x 和 y 坐标均在 [1, 1000] 区间内，包含边界）
+
+【输入描述】
+    第一行包含一个整数 n，表示测试用例的数量。
+    接下来的 n 行，每行包含四个整数 a1, a2, b1, b2，分别表示骑士的起始位置 (a1, a2) 和目标位置 (b1, b2)。
+【输出描述】
+    输出共 n 行，每行输出一个整数，表示骑士从起点到目标点的最短路径长度。
+*/
+
+//广搜会超时
+/*
+A*算法：
+    Astar 是一种 广搜的改良版。 有的是 Astar是 dijkstra 的改良版。
+    其实只是场景不同而已 我们在搜索最短路的时候， 如果是无权图（边的权值都是1） 那就用广搜，
+    代码简洁，时间效率和 dijkstra 差不多 （具体要取决于图的稠密）
+    如果是有权图（边有不同的权值），优先考虑 dijkstra。
+    而 Astar 关键在于 启发式函数， 也就是 影响 广搜或者 dijkstra 从 容器（队列）里取元素的优先顺序。
+    以下，我用BFS版本的A * 来进行讲解。
+    
+    所以 启发式函数 要影响的就是队列里元素的排序！
+    这是影响BFS搜索方向的关键。
+    对队列里节点进行排序，就需要给每一个节点权值，如何计算权值呢？
+    每个节点的权值为F，给出公式为：F = G + H
+    G：起点达到目前遍历节点的距离
+    F：目前遍历的节点到达终点的距离
+    起点达到目前遍历节点的距离 + 目前遍历的节点到达终点的距离 就是起点到达终点的距离。
+*/
+#include<iostream>
+#include<queue>
+#include<string.h>
+using namespace std;
+int moves[1001][1001];
+int dir[8][2]={-2,-1,-2,1,-1,2,1,2,2,1,2,-1,1,-2,-1,-2};
+int b1, b2;
+// F = G + H
+// G = 从起点到该节点路径消耗
+// H = 该节点到终点的预估消耗
+
+struct Knight{
+    int x,y;
+    int g,h,f;
+    bool operator < (const Knight & k) const{  // 重载运算符， 从小到大排序
+     return k.f < f;
+    }
+};
+
+priority_queue<Knight> que;
+
+int Heuristic(const Knight& k) { // 欧拉距离
+    return (k.x - b1) * (k.x - b1) + (k.y - b2) * (k.y - b2); // 统一不开根号，这样可以提高精度
+}
+void astar(const Knight& k)
+{
+    Knight cur, next;
+	que.push(k);
+	while(!que.empty())
+	{
+		cur=que.top(); que.pop();
+		if(cur.x == b1 && cur.y == b2)
+		break;
+		for(int i = 0; i < 8; i++)
+		{
+			next.x = cur.x + dir[i][0];
+			next.y = cur.y + dir[i][1];
+			if(next.x < 1 || next.x > 1000 || next.y < 1 || next.y > 1000)
+			continue;
+			if(!moves[next.x][next.y])
+			{
+				moves[next.x][next.y] = moves[cur.x][cur.y] + 1;
+
+                // 开始计算F
+				next.g = cur.g + 5; // 统一不开根号，这样可以提高精度，马走日，1 * 1 + 2 * 2 = 5
+                next.h = Heuristic(next);
+                next.f = next.g + next.h;
+                que.push(next);
+			}
+		}
+	}
+}
+
+int main()
+{
+    int n, a1, a2;
+    cin >> n;
+    while (n--) {
+        cin >> a1 >> a2 >> b1 >> b2;
+        memset(moves,0,sizeof(moves));
+        Knight start;
+        start.x = a1;
+        start.y = a2;
+        start.g = 0;
+        start.h = Heuristic(start);
+        start.f = start.g + start.h;
+		astar(start);
+        while(!que.empty()) que.pop(); // 队列清空
+		cout << moves[b1][b2] << endl;
+	}
+	return 0;
+}
